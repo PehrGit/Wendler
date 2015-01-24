@@ -427,7 +427,12 @@ public class SqlHandler {
                 sets.addAll(set);
                 setGroups.put(SetType.REGULAR, set);
 
-                return new MainExercise(name, oneRm, increment, sets, setGroups, workoutPercentage);
+                int highestEstimated1RM = getHighestEstimated1RM(name);
+
+                int repsToBeat = WendlerMath.getRepsToBeat(mContext, set, highestEstimated1RM);
+
+
+                return new MainExercise(name, oneRm, increment, sets, setGroups, workoutPercentage, repsToBeat);
             }
             return null;
         } finally {
@@ -541,6 +546,13 @@ public class SqlHandler {
         }
     }
 
+
+    public int getHighestEstimated1RM(String name){
+        // TODO
+
+        return -1;
+    }
+
     /**
      * Return additional exercise names stored as permanent exercises.
      */
@@ -585,6 +597,7 @@ public class SqlHandler {
         }
 
     }
+
 
     /**
      * Store the main exercise and return if it was successful.
@@ -1304,8 +1317,11 @@ public class SqlHandler {
                 sets.addAll(set);
                 setGroups.put(SetType.REGULAR, set);
 
-                mainExercise = new MainExercise(
-                        name, oneRm, increment, sets, setGroups, workoutPercentage);
+                int highestEstimated1RM = getHighestEstimated1RM(name);
+
+                int repsToBeat = WendlerMath.getRepsToBeat(mContext, set, highestEstimated1RM);
+
+                mainExercise = new MainExercise(name, oneRm, increment, sets, setGroups, workoutPercentage, repsToBeat);
             }
 
             if (!isComplete && mainExercise != null && mainExercise.getLastSetProgress() < 0) {

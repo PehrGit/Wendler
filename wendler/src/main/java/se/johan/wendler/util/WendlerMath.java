@@ -4,6 +4,7 @@ import android.content.Context;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import se.johan.wendler.R;
 import se.johan.wendler.model.DeloadItem;
@@ -280,5 +281,10 @@ public class WendlerMath {
             intArray[i] = Integer.parseInt(stringArray[i]);
         }
         return intArray;
+    }
+
+    public static int getRepsToBeat(Context context, List<ExerciseSet> sets, int highestEstimated1RM) {
+        // TODO
+        return 99;
     }
 }
