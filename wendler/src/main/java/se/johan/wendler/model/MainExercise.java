@@ -17,6 +17,7 @@ public class MainExercise extends Exercise implements Parcelable {
     private double mWeight;
     private int mWorkoutPercentage;
     private List<SetGroup> mSetGroups = new ArrayList<>();
+	private int mRepsToBeat;
 
     /**
      * Constructor.
@@ -26,13 +27,15 @@ public class MainExercise extends Exercise implements Parcelable {
                         double increment,
                         ArrayList<ExerciseSet> exerciseSets,
                         List<SetGroup> setGroups,
-                        int workoutPercentage) {
+                        int workoutPercentage,
+                        int repsToBeat) {
         mName = name;
         mWeight = weight;
         mIncrement = increment;
         mExerciseSets = exerciseSets;
         mWorkoutPercentage = workoutPercentage;
         mSetGroups = setGroups;
+        mRepsToBeat = repsToBeat;
     }
 
     /**
@@ -87,6 +90,14 @@ public class MainExercise extends Exercise implements Parcelable {
     public double getLastSetWeight() {
         int size = mExerciseSets.size();
         return mExerciseSets.get(size - 1).getWeight();
+    }
+
+    /**
+     * Return the reps to beat for a new PR
+     * @return
+     */
+    public int getRepsToBeat() {
+        return mRepsToBeat;
     }
 
     /**
