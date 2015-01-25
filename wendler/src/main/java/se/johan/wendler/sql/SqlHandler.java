@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -82,6 +83,7 @@ public class SqlHandler {
     private static final String KEY_WORKOUT_NOTES = "notes";
     private static final String KEY_WORKOUT_WON = "workout_won";
     private static final String KEY_WORKOUT_COMPLETED = "workout_completed";
+    private static final String KEY_WORKOUT_EST_ONE_RM = "est_one_rm";
 
     /**
      * Extra workout table *
@@ -427,10 +429,13 @@ public class SqlHandler {
                 sets.addAll(set);
                 setGroups.put(SetType.REGULAR, set);
 
+                //ExerciseSet lastSet = sets.get(sets.size()-1);
+
+                //int estOneRm = WendlerMath.calculateOneRm(lastSet.getWeight(), lastSet.)
+
                 int highestEstimated1RM = getHighestEstimated1RM(name);
 
                 int repsToBeat = WendlerMath.getRepsToBeat(mContext, set, highestEstimated1RM);
-
 
                 return new MainExercise(name, oneRm, increment, sets, setGroups, workoutPercentage, repsToBeat);
             }
@@ -547,10 +552,30 @@ public class SqlHandler {
     }
 
 
-    public int getHighestEstimated1RM(String name){
-        // TODO
+    public int getHighestEstimated1RM(String name){ // TODO test performance
+        String[] columns = new String[]{KEY_WORKOUT_LAST_SET, KEY_WORKOUT_REPS};
+        ArrayList<Integer> estOneRms = new ArrayList<>();
+        estOneRms.add(-1); // ensure that Collections.max will always return something
 
-        return -1;
+        Cursor cursor = null;
+        try{
+            cursor = mDatabase.query(DATABASE_TABLE_WENDLER_WORKOUT, columns, KEY_WORKOUT_EXERCISE + "=?", new String[]{name},null, null, null);
+            if(cursor != null && cursor.moveToFirst()){
+                do{
+                    int weight = cursor.getInt(cursor.getColumnIndex(KEY_WORKOUT_LAST_SET));
+                    int reps = cursor.getInt(cursor.getColumnIndex(KEY_WORKOUT_REPS));
+                    int estOneRm = WendlerMath.calculateOneRm(weight, reps);
+                    estOneRms.add(estOneRm);
+                }while(cursor.moveToNext());
+            }
+
+            int highestEstimatedOneRm = Collections.max(estOneRms);
+            return highestEstimatedOneRm;
+        }finally{
+            if(cursor != null){
+                cursor.close();
+            }
+        }
     }
 
     /**
@@ -608,6 +633,7 @@ public class SqlHandler {
         double oneRm = workout.getMainExercise().getWeight();
         int size = workout.getMainExercise().getExerciseSets().size();
         double lastSet = workout.getMainExercise().getExerciseSet(size - 1).getWeight();
+        int estOneRm = workout.getMainExercise().getEstOneRm();
 
         cv.put(KEY_WORKOUT_ID, workout.getWorkoutId());
         cv.put(KEY_WORKOUT_EXERCISE, workout.getName());
@@ -1553,6 +1579,7 @@ public class SqlHandler {
      */
     private static class DbHelper extends SQLiteOpenHelper {
 
+
         private final Context mContext;
 
         /**
@@ -1614,7 +1641,9 @@ public class SqlHandler {
                     KEY_WORKOUT_NOTES + " TEXT NOT NULL, " +
                     KEY_WORKOUT_COMPLETED + " INTEGER NOT NULL, " +
                     KEY_TRAINING_PERCENTAGE + " INTEGER NOT NULL, " +
-                    KEY_WORKOUT_WON + " INTEGER);");
+                    KEY_WORKOUT_WON + " INTEGER);"
+                    //+ KEY_WORKOUT_EST_ONE_RM + "INTEGER"
+            );
 
             /**
              * Table for managing extra exercises for a specific workout.
