@@ -284,7 +284,32 @@ public class WendlerMath {
     }
 
     public static int getRepsToBeat(Context context, List<ExerciseSet> sets, int highestEstimated1RM) {
-        // TODO
-        return 99;
+        ExerciseSet lastSet = sets.get(sets.size()-1);
+
+        double oneRmReps = calculateOneRmReps(lastSet.getWeight(), highestEstimated1RM);
+        int ceilOneRmReps = (int) Math.ceil(oneRmReps);
+
+        if(calculateOneRm(lastSet.getWeight(), ceilOneRmReps) <= highestEstimated1RM){
+            return ceilOneRmReps + 1;
+        }else{
+            return ceilOneRmReps;
+        }
+    }
+
+    public static double calculateOneRmReps(double weight, double oneRm){
+        double constant = 0.0333;
+        double mReps = 1 / ((weight * constant)/(oneRm-weight));
+        return mReps;
+
+        /**
+         * Proof (probably horrible math):
+         * O = (w*r*c) + w
+         * O–w = w*r*c
+         * (o-w)/r = w*c
+         * (o-w)*(1/r) = w*c
+         * 1/r = (w*c)/(o-w)
+         * R = 1/((w*c)/(o-w))
+         * QED
+         */
     }
 }

@@ -17,7 +17,8 @@ public class MainExercise extends Exercise implements Parcelable {
     private double mWeight;
     private int mWorkoutPercentage;
     private List<SetGroup> mSetGroups = new ArrayList<>();
-	private int mRepsToBeat;
+    private int mRepsToBeat;
+    private int mEstOneRm;
 
     /**
      * Constructor.
@@ -28,6 +29,7 @@ public class MainExercise extends Exercise implements Parcelable {
                         ArrayList<ExerciseSet> exerciseSets,
                         List<SetGroup> setGroups,
                         int workoutPercentage,
+                        //int estOneRm,
                         int repsToBeat) {
         mName = name;
         mWeight = weight;
@@ -35,7 +37,10 @@ public class MainExercise extends Exercise implements Parcelable {
         mExerciseSets = exerciseSets;
         mWorkoutPercentage = workoutPercentage;
         mSetGroups = setGroups;
+        //mEstOneRm = estOneRm;
+
         mRepsToBeat = repsToBeat;
+
     }
 
     /**
@@ -98,6 +103,14 @@ public class MainExercise extends Exercise implements Parcelable {
      */
     public int getRepsToBeat() {
         return mRepsToBeat;
+    }
+
+    /**
+     * Return the estimated One RM based on the last set
+     * @return
+     */
+    public int getEstOneRm() {
+        return mEstOneRm;
     }
 
     /**
@@ -180,4 +193,5 @@ public class MainExercise extends Exercise implements Parcelable {
             return new MainExercise[size];
         }
     };
+
 }
