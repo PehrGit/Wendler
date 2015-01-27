@@ -429,15 +429,11 @@ public class SqlHandler {
                 sets.addAll(set);
                 setGroups.add(new SetGroup(SetType.REGULAR, set));
 
-                //ExerciseSet lastSet = sets.get(sets.size()-1);
-
-                //int estOneRm = WendlerMath.calculateOneRm(lastSet.getWeight(), lastSet.)
-
                 int highestEstimated1RM = getHighestEstimated1RM(name);
 
                 int repsToBeat = WendlerMath.getRepsToBeat(mContext, set, highestEstimated1RM);
 
-                return new MainExercise(name, oneRm, increment, sets, setGroups, workoutPercentage, repsToBeat);
+                return new MainExercise(name, oneRm, increment, sets, setGroups, workoutPercentage, 0, repsToBeat);
             }
             return null;
         } finally {
@@ -552,25 +548,27 @@ public class SqlHandler {
     }
 
 
-    public int getHighestEstimated1RM(String name){ // TODO test performance
-        String[] columns = new String[]{KEY_WORKOUT_LAST_SET, KEY_WORKOUT_REPS};
-        ArrayList<Integer> estOneRms = new ArrayList<>();
-        estOneRms.add(-1); // ensure that Collections.max will always return something
+    public int getHighestEstimated1RM(String name){ // TODO this is pretty inefficient, maybe add some caching?
+        String[] cols = new String[]{KEY_WORKOUT_LAST_SET, KEY_WORKOUT_REPS, KEY_WORKOUT_EST_ONE_RM};
+        String selection = KEY_WORKOUT_EXERCISE + "=?" + " AND " + KEY_WORKOUT_EST_ONE_RM + ">0";
+        String[] selectionargs = new String[]{name};
+        String groupby = null;
+        String having = null;
+        String orderBy = KEY_WORKOUT_EST_ONE_RM + " DESC";
+        String limit = "1";
+        int estOneRm = -1;
 
         Cursor cursor = null;
         try{
-            cursor = mDatabase.query(DATABASE_TABLE_WENDLER_WORKOUT, columns, KEY_WORKOUT_EXERCISE + "=?", new String[]{name},null, null, null);
+            WendlerizedLog.v("Trying to get highest 1RM for exercise " + name);
+            cursor = mDatabase.query(DATABASE_TABLE_WENDLER_WORKOUT, cols, selection, selectionargs, groupby, having, orderBy, limit);
             if(cursor != null && cursor.moveToFirst()){
-                do{
-                    int weight = cursor.getInt(cursor.getColumnIndex(KEY_WORKOUT_LAST_SET));
-                    int reps = cursor.getInt(cursor.getColumnIndex(KEY_WORKOUT_REPS));
-                    int estOneRm = WendlerMath.calculateOneRm(weight, reps);
-                    estOneRms.add(estOneRm);
-                }while(cursor.moveToNext());
+                estOneRm = cursor.getInt(cursor.getColumnIndex(KEY_WORKOUT_EST_ONE_RM));
+                WendlerizedLog.v("Found highest 1RM for exercise " + name + ": " + estOneRm);
+            }else{
+                WendlerizedLog.v("Could not find highest 1RM for exercise " + name + "!");
             }
-
-            int highestEstimatedOneRm = Collections.max(estOneRms);
-            return highestEstimatedOneRm;
+            return estOneRm;
         }finally{
             if(cursor != null){
                 cursor.close();
@@ -651,6 +649,8 @@ public class SqlHandler {
         cv.put(KEY_WORKOUT_DAY, workout.getWorkoutTime().monthDay);
 
         cv.put(KEY_TRAINING_PERCENTAGE, workout.getMainExercise().getWorkoutPercentage());
+
+        cv.put(KEY_WORKOUT_EST_ONE_RM, estOneRm);
 
         if (!workout.isComplete()) {
             cv.put(KEY_WORKOUT_COMPLETED, complete ? 1 : 0);
@@ -1344,11 +1344,11 @@ public class SqlHandler {
                 sets.addAll(set);
                 setGroups.add(new SetGroup(SetType.REGULAR, sets));
 
-                int highestEstimated1RM = getHighestEstimated1RM(name);
+                int estOneRm = cursor.getInt(cursor.getColumnIndex(KEY_WORKOUT_EST_ONE_RM));
 
-                int repsToBeat = WendlerMath.getRepsToBeat(mContext, set, highestEstimated1RM);
+                int repsToBeat = -1; // Workout has been done, so no need to show the reps-to-beat
 
-                mainExercise = new MainExercise(name, oneRm, increment, sets, setGroups, workoutPercentage, repsToBeat);
+                mainExercise = new MainExercise(name, oneRm, increment, sets, setGroups, workoutPercentage, estOneRm, repsToBeat);
             }
 
             if (!isComplete && mainExercise != null && mainExercise.getLastSetProgress() < 0) {
@@ -1642,8 +1642,9 @@ public class SqlHandler {
                     KEY_WORKOUT_NOTES + " TEXT NOT NULL, " +
                     KEY_WORKOUT_COMPLETED + " INTEGER NOT NULL, " +
                     KEY_TRAINING_PERCENTAGE + " INTEGER NOT NULL, " +
-                    KEY_WORKOUT_WON + " INTEGER);"
-                    //+ KEY_WORKOUT_EST_ONE_RM + "INTEGER"
+                    KEY_WORKOUT_WON + " INTEGER"
+                    + ", " + KEY_WORKOUT_EST_ONE_RM + " INTEGER"
+                    + ") ;"
             );
 
             /**
@@ -1762,6 +1763,16 @@ public class SqlHandler {
             } catch (Exception e) {
                 WendlerizedLog.v("Failed to add column " + DATABASE_TABLE_WENDLER_EXTRA
                         + " in " + KEY_IS_STARTED);
+            }
+
+            if(oldVersion < 12 && newVersion >= 12){
+                try{
+                    db.execSQL("ALTER TABLE " + DATABASE_TABLE_WENDLER_WORKOUT + "ADD COLUMN " +
+                    KEY_WORKOUT_EST_ONE_RM + " INTEGER DEFAULT 0");
+                }catch(Exception e){
+                    WendlerizedLog.v("Failed to add column " + DATABASE_TABLE_WENDLER_WORKOUT
+                    + " in " + KEY_WORKOUT_EST_ONE_RM);
+                }
             }
         }
 

@@ -21,6 +21,9 @@ public class WendlerMath {
      * Calculate one rm for a given weight and repetitions.
      */
     public static int calculateOneRm(double weight, int reps) {
+        if(reps <= 0){
+            return 0;
+        }
         double mOneRm = weight * reps * 0.0333 + weight;
         return (int) Math.round(mOneRm);
     }
@@ -284,6 +287,10 @@ public class WendlerMath {
     }
 
     public static int getRepsToBeat(Context context, List<ExerciseSet> sets, int highestEstimated1RM) {
+        if(highestEstimated1RM == -1){
+            return -1;
+        }
+
         ExerciseSet lastSet = sets.get(sets.size()-1);
 
         double oneRmReps = calculateOneRmReps(lastSet.getWeight(), highestEstimated1RM);

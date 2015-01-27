@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import se.johan.wendler.model.base.Exercise;
+import se.johan.wendler.util.WendlerMath;
 
 /**
  * Object representing a main exercise.
@@ -29,7 +30,7 @@ public class MainExercise extends Exercise implements Parcelable {
                         ArrayList<ExerciseSet> exerciseSets,
                         List<SetGroup> setGroups,
                         int workoutPercentage,
-                        //int estOneRm,
+                        int estOneRm,
                         int repsToBeat) {
         mName = name;
         mWeight = weight;
@@ -37,7 +38,7 @@ public class MainExercise extends Exercise implements Parcelable {
         mExerciseSets = exerciseSets;
         mWorkoutPercentage = workoutPercentage;
         mSetGroups = setGroups;
-        //mEstOneRm = estOneRm;
+        mEstOneRm = estOneRm;
 
         mRepsToBeat = repsToBeat;
 
@@ -114,6 +115,13 @@ public class MainExercise extends Exercise implements Parcelable {
     }
 
     /**
+     * Recalculates the estimated One RM based on last set weight and reps
+     */
+    public void recalculateEstOneRm(){
+        mEstOneRm = WendlerMath.calculateOneRm(getLastSetWeight(), getLastSetProgress());
+    }
+
+    /**
      * Returns the set groups.
      */
     public List<SetGroup> getSetGroups() {
@@ -156,6 +164,8 @@ public class MainExercise extends Exercise implements Parcelable {
             dest.writeByte((byte) (0x01));
             dest.writeList(mSetGroups);
         }
+        dest.writeInt(mRepsToBeat);
+        dest.writeInt(mEstOneRm);
     }
 
     /**
@@ -178,6 +188,8 @@ public class MainExercise extends Exercise implements Parcelable {
         } else {
             mSetGroups = null;
         }
+        mRepsToBeat = in.readInt();
+        mEstOneRm = in.readInt();
     }
 
     /**
