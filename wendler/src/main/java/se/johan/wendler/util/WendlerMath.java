@@ -22,7 +22,7 @@ public class WendlerMath {
      */
     public static int calculateOneRm(double weight, int reps) {
         if(reps <= 0){
-            return 0;
+            return -1;
         }
         double mOneRm = weight * reps * 0.0333 + weight;
         return (int) Math.round(mOneRm);
