@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import se.johan.wendler.model.AdditionalExercise;
 import se.johan.wendler.model.DeloadItem;
@@ -39,7 +40,7 @@ import se.johan.wendler.util.WendlerizedLog;
 public class SqlHandler {
 
     public static final String DATABASE_NAME = "WendlerizedDb";
-    private static final int DATABASE_VERSION = 11;
+    private static final int DATABASE_VERSION = 12;
 
     /**
      * Stats table *
@@ -547,7 +548,6 @@ public class SqlHandler {
         }
     }
 
-
     public int getHighestEstimated1RM(String name){ // TODO this is pretty inefficient, maybe add some caching?
         String[] cols = new String[]{KEY_WORKOUT_LAST_SET, KEY_WORKOUT_REPS, KEY_WORKOUT_EST_ONE_RM};
         String selection = KEY_WORKOUT_EXERCISE + "=?" + " AND " + KEY_WORKOUT_EST_ONE_RM + ">0";
@@ -568,12 +568,16 @@ public class SqlHandler {
             }else{
                 WendlerizedLog.v("Could not find highest 1RM for exercise " + name + "!");
             }
-            return estOneRm;
-        }finally{
+        }catch(Exception e) {
+            WendlerizedLog.v("Error while trying to find highest 1RM for exercise " + name + "!");
+        }
+        finally
+        {
             if(cursor != null){
                 cursor.close();
             }
         }
+        return estOneRm;
     }
 
     /**
@@ -1767,8 +1771,10 @@ public class SqlHandler {
 
             if(oldVersion < 12 && newVersion >= 12){
                 try{
-                    db.execSQL("ALTER TABLE " + DATABASE_TABLE_WENDLER_WORKOUT + "ADD COLUMN " +
+                    db.execSQL("ALTER TABLE " + DATABASE_TABLE_WENDLER_WORKOUT + " ADD COLUMN " +
                     KEY_WORKOUT_EST_ONE_RM + " INTEGER DEFAULT 0");
+
+                    setEst1rmForExistingWorkouts(db);
                 }catch(Exception e){
                     WendlerizedLog.v("Failed to add column " + DATABASE_TABLE_WENDLER_WORKOUT
                     + " in " + KEY_WORKOUT_EST_ONE_RM);
@@ -1815,6 +1821,18 @@ public class SqlHandler {
                     }
                 }
             }
+        }
+
+        private static void setEst1rmForExistingWorkouts(SQLiteDatabase database) throws android.database.SQLException{
+                String format =
+                        "UPDATE %1$s SET %2$s =" +
+                                " CASE WHEN %4$s > 0" +
+                                " THEN %3$s * %4$s * 0.0333 + %3$s" +
+                                " ELSE -1" +
+                                " END"                                ;
+                Object[] args = {DATABASE_TABLE_WENDLER_WORKOUT, KEY_WORKOUT_EST_ONE_RM, KEY_WORKOUT_LAST_SET, KEY_WORKOUT_REPS};
+                String sql = String.format(Locale.ROOT, format, args);
+                database.execSQL(sql);
         }
     }
 }
